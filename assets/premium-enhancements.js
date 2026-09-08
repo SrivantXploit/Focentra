@@ -141,13 +141,14 @@
     var greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
     var dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
+    var user = getSharedUserProfile();
     var mc = document.createElement('div');
     mc.className = 'sp-mission-control';
     mc.innerHTML =
       '<div class="sp-mc-header">' +
         '<div class="sp-mc-avatar">🧠</div>' +
         '<div>' +
-          '<div class="sp-mc-greeting">Good day, Srivant <span class="sp-wave">👋</span></div>' +
+          '<div class="sp-mc-greeting">Good day, ' + user.firstName + ' <span class="sp-wave">👋</span></div>' +
           '<div class="sp-mc-sub">AI Mission Control · ' + dateStr + ' · Semester 6</div>' +
         '</div>' +
       '</div>' +
@@ -455,32 +456,92 @@
     });
   }
 
+  // ─── Single Shared User Profile State Reader ─────────────────────
+  function getSharedUserProfile() {
+    var name = 'Srivant M';
+    try {
+      var keys = ['studypilot_state', 'studypilot_user', 'user_profile', 'studypilot_settings'];
+      for (var i = 0; i < keys.length; i++) {
+        var raw = localStorage.getItem(keys[i]);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (parsed && parsed.user && parsed.user.name) { name = parsed.user.name; break; }
+          if (parsed && parsed.name) { name = parsed.name; break; }
+        }
+      }
+    } catch(e) {}
+
+    // Check if profile input has an active updated name
+    var input = document.querySelector('input[name="name"], input[placeholder*="Name"]');
+    if (input && input.value && input.value.trim().length > 0) {
+      name = input.value.trim();
+    }
+
+    var firstName = name.split(' ')[0] || name;
+    var initial = name.charAt(0).toUpperCase() || 'S';
+
+    return {
+      fullName: name,
+      firstName: firstName,
+      initial: initial
+    };
+  }
+
   // ─── User Profile Synchronization ──────────────────────────────
   function syncUserProfile() {
+    var user = getSharedUserProfile();
+
+    // 1. Mission Control Greeting
+    var mcGreeting = document.querySelector('.sp-mc-greeting');
+    if (mcGreeting) {
+      var now = new Date();
+      var hour = now.getHours();
+      var greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+      mcGreeting.innerHTML = greeting + ', ' + user.firstName + ' <span class="sp-wave">👋</span>';
+    }
+
+    // 2. Dynamic Text Node Replacement (replaces old placeholder names with shared user state)
     var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
     var node;
     while ((node = walker.nextNode())) {
       if (node.nodeValue.indexOf('Alex Chen') > -1) {
-        node.nodeValue = node.nodeValue.replace(/Alex Chen/g, 'Srivant M');
+        node.nodeValue = node.nodeValue.replace(/Alex Chen/g, user.fullName);
       }
-      if (node.nodeValue.indexOf('Alex') > -1) {
-        node.nodeValue = node.nodeValue.replace(/\bAlex\b/g, 'Srivant');
-      }
-      if (node.nodeValue.indexOf('Good day, Alex') > -1) {
-        node.nodeValue = node.nodeValue.replace(/Good day, Alex/g, 'Good day, Srivant');
+      if (node.nodeValue.indexOf('Alex') > -1 && node.nodeValue.indexOf('Alexander') === -1) {
+        node.nodeValue = node.nodeValue.replace(/\bAlex\b/g, user.firstName);
       }
     }
 
+    // 3. Sync Profile Avatar Initials & Labels
     var avatars = document.querySelectorAll('header button, nav button, [class*="avatar"], [class*="profile"]');
     avatars.forEach(function(el) {
-      if (el.children.length === 0 && el.textContent.trim() === 'A') {
-        el.textContent = 'S';
+      if (el.children.length === 0 && el.textContent.trim().length === 1 && (el.textContent.trim() === 'A' || el.textContent.trim() === 'S')) {
+        el.textContent = user.initial;
       }
       var spanA = el.querySelector('span');
-      if (spanA && spanA.children.length === 0 && spanA.textContent.trim() === 'Srivant M') {
-        // Keeps user name clean
-      } else if (spanA && spanA.children.length === 0 && spanA.textContent.trim() === 'A') {
-        spanA.textContent = 'S';
+      if (spanA && spanA.children.length === 0 && spanA.textContent.trim().length === 1 && (spanA.textContent.trim() === 'A' || spanA.textContent.trim() === 'S')) {
+        spanA.textContent = user.initial;
+      }
+    });
+
+    // 4. Input sync listener: updates shared state and all components when name changes
+    var nameInputs = document.querySelectorAll('input[name="name"], input[placeholder*="Name"]');
+    nameInputs.forEach(function(inp) {
+      if (!inp.dataset.spSyncAttached) {
+        inp.dataset.spSyncAttached = 'true';
+        inp.addEventListener('input', function() {
+          try {
+            var stateRaw = localStorage.getItem('studypilot_state');
+            if (stateRaw) {
+              var parsed = JSON.parse(stateRaw);
+              if (parsed && parsed.user) {
+                parsed.user.name = inp.value;
+                localStorage.setItem('studypilot_state', JSON.stringify(parsed));
+              }
+            }
+          } catch(e) {}
+          syncUserProfile();
+        });
       }
     });
   }
