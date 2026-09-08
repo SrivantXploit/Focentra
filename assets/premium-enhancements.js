@@ -455,12 +455,43 @@
     });
   }
 
+  // ─── User Profile Synchronization ──────────────────────────────
+  function syncUserProfile() {
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+    var node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue.indexOf('Alex Chen') > -1) {
+        node.nodeValue = node.nodeValue.replace(/Alex Chen/g, 'Srivant M');
+      }
+      if (node.nodeValue.indexOf('Alex') > -1) {
+        node.nodeValue = node.nodeValue.replace(/\bAlex\b/g, 'Srivant');
+      }
+      if (node.nodeValue.indexOf('Good day, Alex') > -1) {
+        node.nodeValue = node.nodeValue.replace(/Good day, Alex/g, 'Good day, Srivant');
+      }
+    }
+
+    var avatars = document.querySelectorAll('header button, nav button, [class*="avatar"], [class*="profile"]');
+    avatars.forEach(function(el) {
+      if (el.children.length === 0 && el.textContent.trim() === 'A') {
+        el.textContent = 'S';
+      }
+      var spanA = el.querySelector('span');
+      if (spanA && spanA.children.length === 0 && spanA.textContent.trim() === 'Srivant M') {
+        // Keeps user name clean
+      } else if (spanA && spanA.children.length === 0 && spanA.textContent.trim() === 'A') {
+        spanA.textContent = 'S';
+      }
+    });
+  }
+
   // ─── Init Everything ───────────────────────────────────────────
   waitForApp(function() {
     createBlobs();
     createParticles();
     createNotificationBell();
     setupAICoachHandlers();
+    syncUserProfile();
 
     if (isDashboard()) {
       createMissionControl();
@@ -470,15 +501,19 @@
     setupScrollReveal();
     animateCounters();
 
-    onNavChange(handleNavigation);
+    onNavChange(function() {
+      handleNavigation();
+      syncUserProfile();
+    });
 
-    // Periodically re-check for notification bell (in case header re-renders)
+    // Periodically re-check for notification bell & user profile sync
     setInterval(function() {
       var btn = document.querySelector('button[aria-label="View Notifications"]');
       if (btn && btn.dataset.spEnhanced !== 'true') {
         createNotificationBell();
       }
-    }, 3000);
+      syncUserProfile();
+    }, 2000);
   });
 
 })();
