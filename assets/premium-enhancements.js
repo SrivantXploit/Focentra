@@ -148,7 +148,7 @@
       '<div class="sp-mc-header">' +
         '<div class="sp-mc-avatar">🧠</div>' +
         '<div>' +
-          '<div class="sp-mc-greeting">' + greeting + ', ' + user.firstName + ' <span class="sp-wave">👋</span></div>' +
+          '<div class="sp-mc-greeting">Good day <span class="sp-wave">👋</span></div>' +
           '<div class="sp-mc-sub">AI Mission Control · ' + dateStr + ' · Semester 6</div>' +
         '</div>' +
       '</div>' +
@@ -511,10 +511,7 @@
     // 1. Mission Control Greeting
     var mcGreeting = document.querySelector('.sp-mc-greeting');
     if (mcGreeting) {
-      var now = new Date();
-      var hour = now.getHours();
-      var greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
-      mcGreeting.innerHTML = greeting + ', ' + user.firstName + ' <span class="sp-wave">👋</span>';
+      mcGreeting.innerHTML = 'Good day <span class="sp-wave">👋</span>';
     }
 
     // 2. Dynamic Text Node Replacement (replaces old placeholder names with shared user state)
