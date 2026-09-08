@@ -148,7 +148,7 @@
       '<div class="sp-mc-header">' +
         '<div class="sp-mc-avatar">🧠</div>' +
         '<div>' +
-          '<div class="sp-mc-greeting">Good day, ' + user.firstName + ' <span class="sp-wave">👋</span></div>' +
+          '<div class="sp-mc-greeting">' + greeting + ', ' + user.firstName + ' <span class="sp-wave">👋</span></div>' +
           '<div class="sp-mc-sub">AI Mission Control · ' + dateStr + ' · Semester 6</div>' +
         '</div>' +
       '</div>' +
@@ -458,24 +458,41 @@
 
   // ─── Single Shared User Profile State Reader ─────────────────────
   function getSharedUserProfile() {
-    var name = 'Srivant M';
-    try {
-      var keys = ['studypilot_state', 'studypilot_user', 'user_profile', 'studypilot_settings'];
-      for (var i = 0; i < keys.length; i++) {
-        var raw = localStorage.getItem(keys[i]);
-        if (raw) {
-          var parsed = JSON.parse(raw);
-          if (parsed && parsed.user && parsed.user.name) { name = parsed.user.name; break; }
-          if (parsed && parsed.name) { name = parsed.name; break; }
-        }
-      }
-    } catch(e) {}
+    var name = '';
 
-    // Check if profile input has an active updated name
-    var input = document.querySelector('input[name="name"], input[placeholder*="Name"]');
-    if (input && input.value && input.value.trim().length > 0) {
-      name = input.value.trim();
+    // 1. Try reading directly from top-right profile button / header DOM element
+    var profileEl = document.querySelector('header button[aria-label*="Profile"], header .profile-name, header [class*="user"]');
+    if (profileEl) {
+      var text = (profileEl.textContent || '').trim();
+      if (text && text.length > 1 && text !== 'View Notifications' && text.indexOf('Streak') === -1) {
+        name = text;
+      }
     }
+
+    // 2. Try reading from localStorage shared state keys
+    if (!name) {
+      try {
+        var keys = ['studypilot_state', 'studypilot_user', 'user_profile', 'studypilot_settings'];
+        for (var i = 0; i < keys.length; i++) {
+          var raw = localStorage.getItem(keys[i]);
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.user && parsed.user.name) { name = parsed.user.name; break; }
+            if (parsed && parsed.name) { name = parsed.name; break; }
+          }
+        }
+      } catch(e) {}
+    }
+
+    // 3. Try reading from profile form input fields
+    if (!name) {
+      var input = document.querySelector('input[name="name"], input[placeholder*="Name"]');
+      if (input && input.value && input.value.trim().length > 0) {
+        name = input.value.trim();
+      }
+    }
+
+    if (!name) name = 'Srivant M';
 
     var firstName = name.split(' ')[0] || name;
     var initial = name.charAt(0).toUpperCase() || 'S';
